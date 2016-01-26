@@ -99,11 +99,6 @@ public class Watcher {
 						dbUtil.update(file);
 					}
 				}
-				try {
-					Thread.currentThread().wait(5);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
 			}
 		}
 
