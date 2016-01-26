@@ -42,6 +42,7 @@ public class DatabaseUtil {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - create - " + file);
 		PreparedStatement statement = null;
 		PreparedStatement getIdStatement = null;
+		ResultSet resultSet = null;
 		try {
 			statement = connection.prepareStatement(
 					"insert into file_queue (file_name, status, version, updated_on, updated_by) values (?, ?, ?, ?, ?)");
@@ -56,13 +57,21 @@ public class DatabaseUtil {
 			getIdStatement.setString(1, file.getName());
 			getIdStatement.setTimestamp(2, file.getUpdatedOn());
 			getIdStatement.execute();
-			ResultSet result = getIdStatement.getResultSet();
-			if (result.next()) {
-				file.setId(result.getInt(1));
+			resultSet = getIdStatement.getResultSet();
+			if (resultSet.next()) {
+				file.setId(resultSet.getInt(1));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
+			if (resultSet != null) {
+				try {
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+					;
+				}
+			}
 			if (statement != null) {
 				try {
 					statement.close();
@@ -85,10 +94,11 @@ public class DatabaseUtil {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - getById - " + id);
 		PreparedStatement statement = null;
 		FileEntry result = new FileEntry();
+		ResultSet resultSet = null;
 		try {
 			statement = connection.prepareStatement("select * from file_queue where id = ?");
 			statement.setInt(1, id);
-			ResultSet resultSet = statement.executeQuery();
+			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
 				result.setId(resultSet.getInt(1));
 				result.setName(resultSet.getString(2));
@@ -100,6 +110,13 @@ public class DatabaseUtil {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
+			if (resultSet != null) {
+				try {
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 			if (statement != null) {
 				try {
 					statement.close();
@@ -179,12 +196,13 @@ public class DatabaseUtil {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - getFilesToBeProcessed");
 		List<FileEntry> result = new ArrayList<FileEntry>();
 		PreparedStatement statement = null;
+		ResultSet resultSet = null;
 		Timestamp timestamp = new Timestamp(System.currentTimeMillis() - 1000 * 60 * 30);
 		try {
 			statement = connection.prepareStatement(
 					"select * from file_queue where status like 'PENDING' or (status like 'PROCESSING' and updated_on < ?)");
 			statement.setTimestamp(1, timestamp);
-			ResultSet resultSet = statement.executeQuery();
+			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				FileEntry file = new FileEntry();
 				file.setId(resultSet.getInt(1));
@@ -197,6 +215,21 @@ public class DatabaseUtil {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+		} finally {
+			if (resultSet != null) {
+				try {
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if (statement != null) {
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
 		}
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - getFilesToBeProcessed: " + result);
 		return result;

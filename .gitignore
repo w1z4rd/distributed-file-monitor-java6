@@ -1,0 +1,5 @@
+# files or folders that are ignored by git
+target/
+.classpath
+.settings/
+.project
