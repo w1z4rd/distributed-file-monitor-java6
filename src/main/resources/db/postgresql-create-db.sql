@@ -22,10 +22,14 @@ CREATE TABLE file_queue
   version integer NOT NULL DEFAULT 0,
   updated_on timestamp with time zone,
   updated_by character varying(250),
-  CONSTRAINT file_queue_pkey PRIMARY KEY (id)
+  created_on timestamp without time zone,
+  created_by character varying(250),
+  CONSTRAINT file_queue_pkey PRIMARY KEY (id),
+  CONSTRAINT unique_file UNIQUE (file_name, created_on)
 )
 WITH (
   OIDS=FALSE
 );
 ALTER TABLE file_queue
   OWNER TO postgres;
+
