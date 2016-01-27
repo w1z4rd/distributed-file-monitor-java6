@@ -8,6 +8,7 @@ import org.apache.commons.vfs2.FileListener;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
+import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.VFS;
 import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 
@@ -41,11 +42,11 @@ public class Watcher {
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
 		Thread worker1 = new Thread(new FileProcessor());
-		worker1.setName("worker-1");
+		worker1.setName("bunti1-1");
 		Thread worker2 = new Thread(new FileProcessor());
-		worker2.setName("worker-2");
+		worker2.setName("bunti1-2");
 		Thread worker3 = new Thread(new FileProcessor());
-		worker3.setName("worker-3");
+		worker3.setName("bunti1-3");
 		worker1.start();
 		System.out.println("===============Worker1 Started!===============");
 		worker2.start();
@@ -58,8 +59,8 @@ public class Watcher {
 	}
 
 	private static void onDelete(FileObject file) {
-		System.out.println("deleted - " + file.getName().getBaseName());
 		try {
+			System.out.println("deleted - " + file.getName().getBaseName());
 			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();
@@ -67,10 +68,15 @@ public class Watcher {
 	}
 
 	private static void onCreated(FileObject file) {
-		System.out.println("created - " + file.getName().getBaseName());
-		FileEntry fileEntry = new FileEntry(file.getName().getBaseName());
-		dbUtil.create(fileEntry);
 		try {
+			if (!file.getType().equals(FileType.FILE)) {
+				System.out.println(file.getName().getBaseName() + " is a folder and is skiped");
+				file.close();
+				return;
+			}
+			System.out.println("created - " + file.getName().getBaseName());
+			FileEntry fileEntry = new FileEntry(file.getName().getBaseName());
+			dbUtil.create(fileEntry);
 			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();
@@ -78,8 +84,8 @@ public class Watcher {
 	}
 
 	private static void onChanged(FileObject file) {
-		System.out.println("changed - " + file.getName().getBaseName());
 		try {
+			System.out.println("changed - " + file.getName().getBaseName());
 			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();

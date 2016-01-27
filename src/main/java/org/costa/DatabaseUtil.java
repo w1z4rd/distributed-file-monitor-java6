@@ -17,7 +17,7 @@ public class DatabaseUtil {
 	private DatabaseUtil() {
 		try {
 			Class.forName("org.postgresql.Driver");
-			connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/upload_test", "postgres",
+			connection = DriverManager.getConnection("jdbc:postgresql://192.168.6.24:5432/upload_test", "postgres",
 					"postgres");
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
@@ -45,31 +45,35 @@ public class DatabaseUtil {
 		ResultSet resultSet = null;
 		try {
 			statement = connection.prepareStatement(
-					"insert into file_queue (file_name, status, version, updated_on, updated_by) values (?, ?, ?, ?, ?)");
+					"insert into file_queue (file_name, status, version, updated_on, updated_by, created_on, created_by) "
+							+ "values (?, ?, ?, ?, ?, ?, ?)");
 			statement.setString(1, file.getName());
 			statement.setString(2, file.getStatus());
 			statement.setInt(3, file.getVersion());
 			statement.setTimestamp(4, file.getUpdatedOn());
 			statement.setString(5, file.getUpdatedBy());
+			statement.setTimestamp(6, file.getCreatedOn());
+			statement.setString(7, file.getCreatedBy());
 			statement.executeUpdate();
-			getIdStatement = connection
-					.prepareStatement("select id from file_queue where file_name like ? and updated_on = ?");
+			getIdStatement = connection.prepareStatement(
+					"select id from file_queue where file_name like ? and created_on = ? and created_by = ?");
 			getIdStatement.setString(1, file.getName());
-			getIdStatement.setTimestamp(2, file.getUpdatedOn());
+			getIdStatement.setTimestamp(2, file.getCreatedOn());
+			getIdStatement.setString(3, file.getCreatedBy());
 			getIdStatement.execute();
 			resultSet = getIdStatement.getResultSet();
 			if (resultSet.next()) {
 				file.setId(resultSet.getInt(1));
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - create - failed to create" + file
+					+ "\n" + e.getMessage());
 		} finally {
 			if (resultSet != null) {
 				try {
 					resultSet.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
-					;
 				}
 			}
 			if (statement != null) {
@@ -84,7 +88,6 @@ public class DatabaseUtil {
 					getIdStatement.close();
 				} catch (SQLException e) {
 					e.printStackTrace();
-					;
 				}
 			}
 		}
@@ -106,6 +109,8 @@ public class DatabaseUtil {
 				result.setVersion(resultSet.getInt(4));
 				result.setUpdatedOn(resultSet.getTimestamp(5));
 				result.setUpdatedBy(resultSet.getString(6));
+				result.setCreatedOn(resultSet.getTimestamp(7));
+				result.setCreatedBy(resultSet.getString(8));
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -211,6 +216,8 @@ public class DatabaseUtil {
 				file.setVersion(resultSet.getInt(4));
 				file.setUpdatedOn(resultSet.getTimestamp(5));
 				file.setUpdatedBy(resultSet.getString(6));
+				file.setCreatedOn(resultSet.getTimestamp(7));
+				file.setCreatedBy(resultSet.getString(8));
 				result.add(file);
 			}
 		} catch (SQLException e) {

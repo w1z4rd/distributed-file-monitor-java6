@@ -9,6 +9,8 @@ public class FileEntry {
 	private String status = "PENDING";
 	private Timestamp updatedOn;
 	private String updatedBy = "COSTA-PROCESS-1";
+	private Timestamp createdOn;
+	private String createdBy = "COSTA-PROCESS-1";
 
 	public FileEntry() {
 		this.id = -1;
@@ -17,11 +19,15 @@ public class FileEntry {
 		this.status = null;
 		this.updatedOn = null;
 		this.updatedBy = null;
+		this.createdOn = null;
+		this.createdBy = null;
 	}
 
 	public FileEntry(String fileName) {
+		long now = System.currentTimeMillis();
 		this.name = fileName;
-		this.updatedOn = new Timestamp(System.currentTimeMillis());
+		this.updatedOn = new Timestamp(now);
+		this.createdOn = new Timestamp(now - now % 100000);
 	}
 
 	public int getId() {
@@ -72,6 +78,22 @@ public class FileEntry {
 		this.updatedBy = createdBy;
 	}
 
+	public Timestamp getCreatedOn() {
+		return createdOn;
+	}
+
+	public void setCreatedOn(Timestamp cretedOn) {
+		this.createdOn = cretedOn;
+	}
+
+	public String getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.createdBy = createdBy;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -81,6 +103,8 @@ public class FileEntry {
 		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		result = prime * result + ((updatedBy == null) ? 0 : updatedBy.hashCode());
 		result = prime * result + ((updatedOn == null) ? 0 : updatedOn.hashCode());
+		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + version;
 		return result;
 	}
@@ -116,6 +140,16 @@ public class FileEntry {
 				return false;
 		} else if (!updatedOn.equals(other.updatedOn))
 			return false;
+		if (createdBy == null) {
+			if (other.createdBy != null)
+				return false;
+		} else if (!createdBy.equals(other.createdBy))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
+			return false;
 		if (version != other.version)
 			return false;
 		return true;
@@ -124,6 +158,7 @@ public class FileEntry {
 	@Override
 	public String toString() {
 		return "FileEntry [id=" + id + ", version=" + version + ", name=" + name + ", status=" + status + ", updatedOn="
-				+ updatedOn + ", updatedBy=" + updatedBy + "]";
+				+ updatedOn + ", updatedBy=" + updatedBy + ", createdOn=" + createdOn + ", createdBy=" + createdBy
+				+ "]";
 	}
 }
