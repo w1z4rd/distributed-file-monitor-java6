@@ -11,13 +11,13 @@ import java.util.List;
 
 public class DatabaseUtil {
 
-	private static Connection connection = null;
 	private static DatabaseUtil instance = new DatabaseUtil();
+	private Connection connection = null;
 
 	private DatabaseUtil() {
 		try {
 			Class.forName("org.postgresql.Driver");
-			connection = DriverManager.getConnection("jdbc:postgresql://192.168.6.24:5432/upload_test", "postgres",
+			connection = DriverManager.getConnection("jdbc:postgresql://192.168.6.28:5432/upload_test", "postgres",
 					"postgres");
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();

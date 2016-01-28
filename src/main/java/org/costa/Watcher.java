@@ -46,7 +46,7 @@ public class Watcher {
 			}
 		});
 		fm.setRecursive(false);
-		fm.setDelay(30000);
+		fm.setDelay(5000);
 		fm.addFile(watchedFolder);
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
@@ -127,7 +127,8 @@ public class Watcher {
 				return false;
 			}
 			if (!dbUtil.updateStatusToProcessing(file)) {
-				System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - failed to update status to processing");
+				System.out.println(Thread.currentThread().getName()
+						+ " | FileProcessor - process - failed to update status to processing");
 				return false;
 			}
 			try {
@@ -135,7 +136,8 @@ public class Watcher {
 				File processingFile = new File("/media/upload_test/" + file.getName());
 				FileUtils.moveFile(processingFile, archiveFile);
 			} catch (IOException e) {
-				System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - failed to move the file to archive");
+				System.out.println(Thread.currentThread().getName()
+						+ " | FileProcessor - process - failed to move the file to archive");
 				e.printStackTrace();
 				return false;
 			}
