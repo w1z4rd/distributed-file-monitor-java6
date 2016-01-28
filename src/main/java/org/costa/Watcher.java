@@ -1,9 +1,11 @@
 package org.costa;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -28,6 +30,12 @@ public class Watcher {
 		System.setErr(printStream);
 		fsManager = VFS.getManager();
 		FileObject watchedFolder = fsManager.resolveFile("file:///media/upload_test");
+		FileObject[] existingFiles = watchedFolder.getChildren();
+		for (FileObject file : existingFiles) {
+			if (!isAlreadyQueued(file)) {
+				onCreated(file);
+			}
+		}
 		DefaultFileMonitor fm = new DefaultFileMonitor(new FileListener() {
 
 			@Override
@@ -46,7 +54,7 @@ public class Watcher {
 			}
 		});
 		fm.setRecursive(false);
-		fm.setDelay(5000);
+		fm.setDelay(60000);
 		fm.addFile(watchedFolder);
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
@@ -58,13 +66,21 @@ public class Watcher {
 		worker3.setName("bunti1-3");
 		worker1.start();
 		System.out.println("===============Worker1 Started!===============");
-		worker2.start();
-		System.out.println("===============Worker2 Started!===============");
-		worker3.start();
-		System.out.println("===============Worker3 Started!===============");
+		// worker2.start();
+		// System.out.println("===============Worker2 Started!===============");
+		// worker3.start();
+		// System.out.println("===============Worker3 Started!===============");
 		while (true) {
 
 		}
+	}
+
+	private static boolean isAlreadyQueued(FileObject file) {
+		FileEntry persistedFile = dbUtil.findByName(file.getName().getBaseName());
+		if (persistedFile == null) {
+			return false;
+		}
+		return !persistedFile.getStatus().equals("DONE");
 	}
 
 	private static void onDelete(FileObject file) {
@@ -108,12 +124,18 @@ public class Watcher {
 		public void run() {
 			while (true) {
 				List<FileEntry> files = dbUtil.getFilesToBeProcessed();
+				Collections.shuffle(files);
 				for (FileEntry file : files) {
 					if (process(file)) {
 						file.setStatus("DONE");
 						file.setUpdatedBy(Thread.currentThread().getName());
 						dbUtil.update(file);
 					}
+				}
+				try {
+					Thread.sleep(10000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
 				}
 			}
 		}
@@ -135,10 +157,18 @@ public class Watcher {
 				File archiveFile = new File("/media/archive/" + file.getName());
 				File processingFile = new File("/media/upload_test/" + file.getName());
 				FileUtils.moveFile(processingFile, archiveFile);
-			} catch (IOException e) {
+			} catch (FileNotFoundException fnfe) {
+				System.out.println(Thread.currentThread().getName()
+						+ " | FileProcessor - process - processing file not found marking it as MISSING!");
+				fnfe.printStackTrace();
+				file.setStatus("MISSING");
+				file.setUpdatedBy(Thread.currentThread().getName());
+				dbUtil.update(file);
+				return false;
+			} catch (IOException ioe) {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - failed to move the file to archive");
-				e.printStackTrace();
+				ioe.printStackTrace();
 				return false;
 			}
 			System.out.println(Thread.currentThread().getName() + " | FileProcessor - processed - " + file);

@@ -239,4 +239,44 @@ public class DatabaseUtil {
 		}
 		return result;
 	}
+
+	public FileEntry findByName(String name) {
+		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - findByName - " + name);
+		PreparedStatement statement = null;
+		FileEntry result = new FileEntry();
+		ResultSet resultSet = null;
+		try {
+			statement = connection.prepareStatement("select * from file_queue where file_name = ?");
+			statement.setString(1, name);
+			resultSet = statement.executeQuery();
+			if (resultSet.next()) {
+				result.setId(resultSet.getInt(1));
+				result.setName(resultSet.getString(2));
+				result.setStatus(resultSet.getString(3));
+				result.setVersion(resultSet.getInt(4));
+				result.setUpdatedOn(resultSet.getTimestamp(5));
+				result.setUpdatedBy(resultSet.getString(6));
+				result.setCreatedOn(resultSet.getTimestamp(7));
+				result.setCreatedBy(resultSet.getString(8));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if (resultSet != null) {
+				try {
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if (statement != null) {
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return result;
+	}
 }
