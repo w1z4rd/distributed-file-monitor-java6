@@ -8,9 +8,9 @@ public class FileEntry {
 	private String name;
 	private String status = "PENDING";
 	private Timestamp updatedOn;
-	private String updatedBy = "COSTA-PROCESS-1";
+	private String updatedBy = "Bunti1-Watcher-Thread";
 	private Timestamp createdOn;
-	private String createdBy = "COSTA-PROCESS-1";
+	private String createdBy = "Bunti1-Watcher-Thread";
 
 	public FileEntry() {
 		this.id = -1;

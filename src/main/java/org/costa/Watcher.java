@@ -1,8 +1,12 @@
 package org.costa;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
 import org.apache.commons.vfs2.FileObject;
@@ -18,6 +22,10 @@ public class Watcher {
 
 	public static void main(String[] args) throws IOException {
 		System.out.println("===============Application Started!===============");
+		FileOutputStream log = new FileOutputStream("target/watcher.log");
+		PrintStream printStream = new PrintStream(log);
+		System.setOut(printStream);
+		System.setErr(printStream);
 		fsManager = VFS.getManager();
 		FileObject watchedFolder = fsManager.resolveFile("file:///media/upload_test");
 		DefaultFileMonitor fm = new DefaultFileMonitor(new FileListener() {
@@ -38,6 +46,7 @@ public class Watcher {
 			}
 		});
 		fm.setRecursive(false);
+		fm.setDelay(30000);
 		fm.addFile(watchedFolder);
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
@@ -60,7 +69,7 @@ public class Watcher {
 
 	private static void onDelete(FileObject file) {
 		try {
-			System.out.println("deleted - " + file.getName().getBaseName());
+			System.out.println(Thread.currentThread().getName() + " | deleted - " + file.getName().getBaseName());
 			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();
@@ -70,11 +79,12 @@ public class Watcher {
 	private static void onCreated(FileObject file) {
 		try {
 			if (!file.getType().equals(FileType.FILE)) {
-				System.out.println(file.getName().getBaseName() + " is a folder and is skiped");
+				System.out.println(Thread.currentThread().getName() + " | " + file.getName().getBaseName()
+						+ " is a folder and is skiped");
 				file.close();
 				return;
 			}
-			System.out.println("created - " + file.getName().getBaseName());
+			System.out.println(Thread.currentThread().getName() + " | created - " + file.getName().getBaseName());
 			FileEntry fileEntry = new FileEntry(file.getName().getBaseName());
 			dbUtil.create(fileEntry);
 			file.close();
@@ -85,7 +95,7 @@ public class Watcher {
 
 	private static void onChanged(FileObject file) {
 		try {
-			System.out.println("changed - " + file.getName().getBaseName());
+			System.out.println(Thread.currentThread().getName() + " | changed - " + file.getName().getBaseName());
 			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();
@@ -120,34 +130,13 @@ public class Watcher {
 				System.out.println(Thread.currentThread().getName() + "failed to update status to processing");
 				return false;
 			}
-			FileObject archiveFile = null;
-			FileObject processingFile = null;
 			try {
-				archiveFile = fsManager.resolveFile("file:///media/archive/" + file.getName());
-				processingFile = fsManager.resolveFile("file:///media/upload_test/" + file.getName());
-				processingFile.moveTo(archiveFile);
-				archiveFile.close();
-				processingFile.close();
-			} catch (FileSystemException e) {
+				File archiveFile = new File("/media/archive/" + file.getName());
+				File processingFile = new File("/media/upload_test/" + file.getName());
+				FileUtils.moveFile(processingFile, archiveFile);
+			} catch (IOException e) {
 				e.printStackTrace();
 				return false;
-			} finally {
-				if (archiveFile != null) {
-					try {
-						archiveFile.close();
-					} catch (FileSystemException e) {
-						e.printStackTrace();
-						return false;
-					}
-				}
-				if (processingFile != null) {
-					try {
-						processingFile.close();
-					} catch (FileSystemException e) {
-						e.printStackTrace();
-						return false;
-					}
-				}
 			}
 			return true;
 		}
