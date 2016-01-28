@@ -119,15 +119,15 @@ public class Watcher {
 		}
 
 		private boolean process(FileEntry file) {
-			System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - " + file);
+			System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - processing " + file);
 			FileEntry reloadedFile = dbUtil.getById(file.getId());
 			if (!reloadedFile.equals(file)) {
 				System.out.println(Thread.currentThread().getName()
-						+ " | FileProcessor - process - reloadedFile is not equal to processing file");
+						+ " | FileProcessor - process - reloaded file is not equal to processing file");
 				return false;
 			}
 			if (!dbUtil.updateStatusToProcessing(file)) {
-				System.out.println(Thread.currentThread().getName() + "failed to update status to processing");
+				System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - failed to update status to processing");
 				return false;
 			}
 			try {
@@ -135,9 +135,11 @@ public class Watcher {
 				File processingFile = new File("/media/upload_test/" + file.getName());
 				FileUtils.moveFile(processingFile, archiveFile);
 			} catch (IOException e) {
+				System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - failed to move the file to archive");
 				e.printStackTrace();
 				return false;
 			}
+			System.out.println(Thread.currentThread().getName() + " | FileProcessor - processed - " + file);
 			return true;
 		}
 

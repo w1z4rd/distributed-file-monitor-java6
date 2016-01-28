@@ -198,7 +198,6 @@ public class DatabaseUtil {
 	}
 
 	public List<FileEntry> getFilesToBeProcessed() {
-//		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - getFilesToBeProcessed");
 		List<FileEntry> result = new ArrayList<FileEntry>();
 		PreparedStatement statement = null;
 		ResultSet resultSet = null;
@@ -238,7 +237,6 @@ public class DatabaseUtil {
 				}
 			}
 		}
-//		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - getFilesToBeProcessed: " + result);
 		return result;
 	}
 }
