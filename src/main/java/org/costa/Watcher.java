@@ -28,6 +28,10 @@ public class Watcher {
 	private static FileSystemManager fsManager;
 	private static final DatabaseUtil dbUtil = DatabaseUtil.getInstance();
 
+	private Watcher() {
+
+	}
+
 	public static void main(String[] args) throws IOException {
 		System.out.println("===============Application Started!===============");
 		System.out.println("Redirecting System.out and System.err to target/watcher.log");
