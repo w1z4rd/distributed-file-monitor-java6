@@ -1,10 +1,15 @@
 package org.costa;
 
+import static org.costa.FileEntryStatus.DONE;
+import static org.costa.FileEntryStatus.MISSING;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 
@@ -62,10 +67,13 @@ public class Watcher {
 		System.out.println("===============Monitor Started!===============");
 		Thread worker1 = new Thread(new FileProcessor());
 		worker1.setName("bunti1-1");
+		worker1.setDaemon(true);
 		Thread worker2 = new Thread(new FileProcessor());
 		worker2.setName("bunti1-2");
+		worker2.setDaemon(true);
 		Thread worker3 = new Thread(new FileProcessor());
 		worker3.setName("bunti1-3");
+		worker3.setDaemon(true);
 		worker1.start();
 		System.out.println("===============Worker1 Started!===============");
 		worker2.start();
@@ -99,15 +107,23 @@ public class Watcher {
 			if (!file.getType().equals(FileType.FILE)) {
 				System.out.println(Thread.currentThread().getName() + " | " + file.getName().getBaseName()
 						+ " is a folder and is skiped");
-				file.close();
 				return;
 			}
 			System.out.println(Thread.currentThread().getName() + " | created - " + file.getName().getBaseName());
-			FileEntry fileEntry = new FileEntry(file.getName().getBaseName());
+			FileEntry fileEntry = new FileEntry(file.getName().getBaseName(), file.getContent().getLastModifiedTime(),
+					InetAddress.getLocalHost().getHostName(), InetAddress.getLocalHost().getHostName());
 			dbUtil.create(fileEntry);
-			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				file.getContent().close();
+				file.close();
+			} catch (FileSystemException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -129,8 +145,8 @@ public class Watcher {
 				Collections.shuffle(files);
 				for (FileEntry file : files) {
 					if (process(file)) {
-						file.setStatus("DONE");
-						file.setUpdatedBy(Thread.currentThread().getName());
+						file.setStatus(DONE);
+						file.setLastModifiedBy(Thread.currentThread().getName());
 						dbUtil.update(file);
 					}
 				}
@@ -165,8 +181,8 @@ public class Watcher {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - processing file not found marking it as MISSING!");
 				fnfe.printStackTrace();
-				file.setStatus("MISSING");
-				file.setUpdatedBy(Thread.currentThread().getName());
+				file.setStatus(MISSING);
+				file.setLastModifiedBy(Thread.currentThread().getName());
 				dbUtil.update(file);
 				return false;
 			} catch (FileExistsException fee) {

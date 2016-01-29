@@ -19,17 +19,16 @@ CREATE TABLE file_queue
   id serial NOT NULL,
   file_name character varying(250) NOT NULL,
   status character varying(250) NOT NULL,
-  version integer NOT NULL DEFAULT 0,
-  updated_on timestamp with time zone,
-  updated_by character varying(250),
-  created_on timestamp without time zone,
+  file_last_modification_date timestamp without time zone,
+  last_modification_date timestamp without time zone,
+  last_modified_by character varying(250),
+  creation_date timestamp without time zone,
   created_by character varying(250),
   CONSTRAINT file_queue_pkey PRIMARY KEY (id),
-  CONSTRAINT unique_file UNIQUE (file_name, created_on)
+  CONSTRAINT file_queue_unique UNIQUE (file_name, file_last_modification_date)
 )
 WITH (
   OIDS=FALSE
 );
 ALTER TABLE file_queue
   OWNER TO postgres;
-

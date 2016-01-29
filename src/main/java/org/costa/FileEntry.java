@@ -1,33 +1,33 @@
 package org.costa;
 
+import static org.costa.FileEntryStatus.PENDING;
+
 import java.sql.Timestamp;
 
 public class FileEntry {
 	private int id;
-	private int version = 0;
 	private String name;
-	private String status = "PENDING";
-	private Timestamp updatedOn;
-	private String updatedBy = "Bunti1-Watcher-Thread";
+	private FileEntryStatus status;
+	private String createdBy;
+	private String lastModifiedBy;
 	private Timestamp createdOn;
-	private String createdBy = "Bunti1-Watcher-Thread";
+	private Timestamp lastModifiedOn;
+	private Timestamp fileLastModifiedOn;
 
 	public FileEntry() {
-		this.id = -1;
-		this.version = -1;
-		this.name = null;
-		this.status = null;
-		this.updatedOn = null;
-		this.updatedBy = null;
-		this.createdOn = null;
-		this.createdBy = null;
+
 	}
 
-	public FileEntry(String fileName) {
+	public FileEntry(String fileName, long fileLastModified, String createdBy, String modifiedBy) {
 		long now = System.currentTimeMillis();
+		this.id = -1;
 		this.name = fileName;
-		this.updatedOn = new Timestamp(now);
-		this.createdOn = new Timestamp(now - now % 100000);
+		this.status = PENDING;
+		this.lastModifiedBy = modifiedBy;
+		this.createdBy = createdBy;
+		this.lastModifiedOn = new Timestamp(now);
+		this.createdOn = new Timestamp(now);
+		this.fileLastModifiedOn = new Timestamp(fileLastModified);
 	}
 
 	public int getId() {
@@ -38,14 +38,6 @@ public class FileEntry {
 		this.id = id;
 	}
 
-	public int getVersion() {
-		return version;
-	}
-
-	public void setVersion(int version) {
-		this.version = version;
-	}
-
 	public String getName() {
 		return name;
 	}
@@ -54,36 +46,12 @@ public class FileEntry {
 		this.name = name;
 	}
 
-	public String getStatus() {
+	public FileEntryStatus getStatus() {
 		return status;
 	}
 
-	public void setStatus(String status) {
+	public void setStatus(FileEntryStatus status) {
 		this.status = status;
-	}
-
-	public Timestamp getUpdatedOn() {
-		return updatedOn;
-	}
-
-	public void setUpdatedOn(Timestamp updatedOn) {
-		this.updatedOn = updatedOn;
-	}
-
-	public String getUpdatedBy() {
-		return updatedBy;
-	}
-
-	public void setUpdatedBy(String createdBy) {
-		this.updatedBy = createdBy;
-	}
-
-	public Timestamp getCreatedOn() {
-		return createdOn;
-	}
-
-	public void setCreatedOn(Timestamp cretedOn) {
-		this.createdOn = cretedOn;
 	}
 
 	public String getCreatedBy() {
@@ -94,18 +62,50 @@ public class FileEntry {
 		this.createdBy = createdBy;
 	}
 
+	public String getLastModifiedBy() {
+		return lastModifiedBy;
+	}
+
+	public void setLastModifiedBy(String lastModifiedBy) {
+		this.lastModifiedBy = lastModifiedBy;
+	}
+
+	public Timestamp getCreatedOn() {
+		return createdOn;
+	}
+
+	public void setCreatedOn(Timestamp createdOn) {
+		this.createdOn = createdOn;
+	}
+
+	public Timestamp getLastModifiedOn() {
+		return lastModifiedOn;
+	}
+
+	public void setLastModifiedOn(Timestamp lastModifiedOn) {
+		this.lastModifiedOn = lastModifiedOn;
+	}
+
+	public Timestamp getFileLastModifiedOn() {
+		return fileLastModifiedOn;
+	}
+
+	public void setFileLastModifiedOn(Timestamp fileLastModifiedOn) {
+		this.fileLastModifiedOn = fileLastModifiedOn;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
-		int result = 1;
+		int result = 17;
 		result = prime * result + id;
-		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((status == null) ? 0 : status.hashCode());
-		result = prime * result + ((updatedBy == null) ? 0 : updatedBy.hashCode());
-		result = prime * result + ((updatedOn == null) ? 0 : updatedOn.hashCode());
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result + version;
+		result = prime * result + ((fileLastModifiedOn == null) ? 0 : fileLastModifiedOn.hashCode());
+		result = prime * result + ((lastModifiedBy == null) ? 0 : lastModifiedBy.hashCode());
+		result = prime * result + ((lastModifiedOn == null) ? 0 : lastModifiedOn.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		return result;
 	}
 
@@ -118,27 +118,24 @@ public class FileEntry {
 		if (getClass() != obj.getClass())
 			return false;
 		FileEntry other = (FileEntry) obj;
+		if (status != other.status)
+			return false;
+		if (lastModifiedOn == null) {
+			if (other.lastModifiedOn != null)
+				return false;
+		} else if (!lastModifiedOn.equals(other.lastModifiedOn))
+			return false;
+		if (lastModifiedBy == null) {
+			if (other.lastModifiedBy != null)
+				return false;
+		} else if (!lastModifiedBy.equals(other.lastModifiedBy))
+			return false;
 		if (id != other.id)
 			return false;
 		if (name == null) {
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
-			return false;
-		if (status == null) {
-			if (other.status != null)
-				return false;
-		} else if (!status.equals(other.status))
-			return false;
-		if (updatedBy == null) {
-			if (other.updatedBy != null)
-				return false;
-		} else if (!updatedBy.equals(other.updatedBy))
-			return false;
-		if (updatedOn == null) {
-			if (other.updatedOn != null)
-				return false;
-		} else if (!updatedOn.equals(other.updatedOn))
 			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
@@ -150,15 +147,19 @@ public class FileEntry {
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
-		if (version != other.version)
+		if (fileLastModifiedOn == null) {
+			if (other.fileLastModifiedOn != null)
+				return false;
+		} else if (!fileLastModifiedOn.equals(other.fileLastModifiedOn))
 			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "FileEntry [id=" + id + ", version=" + version + ", name=" + name + ", status=" + status + ", updatedOn="
-				+ updatedOn + ", updatedBy=" + updatedBy + ", createdOn=" + createdOn + ", createdBy=" + createdBy
-				+ "]";
+		return "FileEntry [id=" + id + ", name=" + name + ", status=" + status + ", createdBy=" + createdBy
+				+ ", lastModifiedBy=" + lastModifiedBy + ", createdOn=" + createdOn + ", lastModifiedOn="
+				+ lastModifiedOn + ", fileLastModifiedOn=" + fileLastModifiedOn + "]";
 	}
+
 }
