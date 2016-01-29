@@ -26,7 +26,7 @@ import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 
 public class Watcher {
 	private static FileSystemManager fsManager;
-	private static final DatabaseUtil dbUtil = DatabaseUtil.getInstance();
+	private static final DatabaseUtil DB_UTIL = DatabaseUtil.getInstance();
 
 	private Watcher() {
 
@@ -90,7 +90,7 @@ public class Watcher {
 	}
 
 	private static boolean isAlreadyQueued(FileObject file) {
-		FileEntry persistedFile = dbUtil.findByName(file.getName().getBaseName());
+		FileEntry persistedFile = DB_UTIL.findByName(file.getName().getBaseName());
 		if (persistedFile == null) {
 			return false;
 		}
@@ -116,7 +116,7 @@ public class Watcher {
 			System.out.println(Thread.currentThread().getName() + " | created - " + file.getName().getBaseName());
 			FileEntry fileEntry = new FileEntry(file.getName().getBaseName(), file.getContent().getLastModifiedTime(),
 					InetAddress.getLocalHost().getHostName(), InetAddress.getLocalHost().getHostName());
-			dbUtil.create(fileEntry);
+			DB_UTIL.create(fileEntry);
 		} catch (FileSystemException e) {
 			e.printStackTrace();
 		} catch (UnknownHostException e) {
@@ -145,13 +145,13 @@ public class Watcher {
 		@Override
 		public void run() {
 			while (true) {
-				List<FileEntry> files = dbUtil.getFilesToBeProcessed();
+				List<FileEntry> files = DB_UTIL.getFilesToBeProcessed();
 				Collections.shuffle(files);
 				for (FileEntry file : files) {
 					if (process(file)) {
 						file.setStatus(DONE);
 						file.setLastModifiedBy(Thread.currentThread().getName());
-						dbUtil.update(file);
+						DB_UTIL.update(file);
 					}
 				}
 				try {
@@ -164,13 +164,13 @@ public class Watcher {
 
 		private boolean process(FileEntry file) {
 			System.out.println(Thread.currentThread().getName() + " | FileProcessor - process - processing " + file);
-			FileEntry reloadedFile = dbUtil.getById(file.getId());
+			FileEntry reloadedFile = DB_UTIL.getById(file.getId());
 			if (!reloadedFile.equals(file)) {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - reloaded file is not equal to processing file");
 				return false;
 			}
-			if (!dbUtil.updateStatusToProcessing(file)) {
+			if (!DB_UTIL.updateStatusToProcessing(file)) {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - failed to update status to processing");
 				return false;
@@ -187,7 +187,7 @@ public class Watcher {
 				fnfe.printStackTrace();
 				file.setStatus(MISSING);
 				file.setLastModifiedBy(Thread.currentThread().getName());
-				dbUtil.update(file);
+				DB_UTIL.update(file);
 				return false;
 			} catch (FileExistsException fee) {
 				System.out.println(Thread.currentThread().getName()
