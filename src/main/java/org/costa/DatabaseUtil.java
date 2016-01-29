@@ -239,13 +239,14 @@ public class DatabaseUtil {
 	public FileEntry findByName(String name) {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - findByName - " + name);
 		PreparedStatement statement = null;
-		FileEntry result = new FileEntry();
+		FileEntry result = null;
 		ResultSet resultSet = null;
 		try {
 			statement = connection.prepareStatement("select * from file_queue where file_name = ?");
 			statement.setString(1, name);
 			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
+				result = new FileEntry();
 				result.setId(resultSet.getInt(1));
 				result.setName(resultSet.getString(2));
 				result.setStatus(FileEntryStatus.getByName(resultSet.getString(3)));
