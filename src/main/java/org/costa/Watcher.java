@@ -8,6 +8,7 @@ import java.io.PrintStream;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.io.FileExistsException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.vfs2.FileChangeEvent;
 import org.apache.commons.vfs2.FileListener;
@@ -24,6 +25,7 @@ public class Watcher {
 
 	public static void main(String[] args) throws IOException {
 		System.out.println("===============Application Started!===============");
+		System.out.println("Redirecting System.out and System.err to target/watcher.log");
 		FileOutputStream log = new FileOutputStream("target/watcher.log");
 		PrintStream printStream = new PrintStream(log);
 		System.setOut(printStream);
@@ -54,7 +56,7 @@ public class Watcher {
 			}
 		});
 		fm.setRecursive(false);
-		fm.setDelay(60000);
+		fm.setDelay(5000);
 		fm.addFile(watchedFolder);
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
@@ -66,10 +68,10 @@ public class Watcher {
 		worker3.setName("bunti1-3");
 		worker1.start();
 		System.out.println("===============Worker1 Started!===============");
-		// worker2.start();
-		// System.out.println("===============Worker2 Started!===============");
-		// worker3.start();
-		// System.out.println("===============Worker3 Started!===============");
+		worker2.start();
+		System.out.println("===============Worker2 Started!===============");
+		worker3.start();
+		System.out.println("===============Worker3 Started!===============");
 		while (true) {
 
 		}
@@ -80,7 +82,7 @@ public class Watcher {
 		if (persistedFile == null) {
 			return false;
 		}
-		return !persistedFile.getStatus().equals("DONE");
+		return !(persistedFile.getStatus().equals("DONE") || persistedFile.getStatus().equals("MISSING"));
 	}
 
 	private static void onDelete(FileObject file) {
@@ -153,6 +155,8 @@ public class Watcher {
 						+ " | FileProcessor - process - failed to update status to processing");
 				return false;
 			}
+			System.out.println(Thread.currentThread().getName()
+					+ " | FileProcessor - process - updated file status to PROCESSING");
 			try {
 				File archiveFile = new File("/media/archive/" + file.getName());
 				File processingFile = new File("/media/upload_test/" + file.getName());
@@ -165,6 +169,9 @@ public class Watcher {
 				file.setUpdatedBy(Thread.currentThread().getName());
 				dbUtil.update(file);
 				return false;
+			} catch (FileExistsException fee) {
+				System.out.println(Thread.currentThread().getName()
+						+ " | FileProcessor - process - processing file already exists in archive folder!");
 			} catch (IOException ioe) {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - failed to move the file to archive");

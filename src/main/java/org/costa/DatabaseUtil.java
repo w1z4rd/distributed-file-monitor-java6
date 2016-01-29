@@ -178,10 +178,7 @@ public class DatabaseUtil {
 			statement.setInt(7, file.getVersion());
 			statement.setString(8, file.getUpdatedBy());
 			statement.setString(9, file.getStatus());
-			boolean res = statement.executeUpdate() == 1;
-			System.out
-					.println(Thread.currentThread().getName() + " | DatabaseUtil - updateStatusToProcessing - " + res);
-			return res;
+			return statement.executeUpdate() == 1;
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
