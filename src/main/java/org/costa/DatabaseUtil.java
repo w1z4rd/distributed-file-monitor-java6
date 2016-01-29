@@ -46,7 +46,7 @@ public class DatabaseUtil {
 		ResultSet resultSet = null;
 		try {
 			statement = connection.prepareStatement(
-					"insert into file_queue (file_name, status, last_file_modification_date, last_modification_date, last_modified_by, creation_date, created_by) "
+					"insert into file_queue (file_name, status, file_last_modification_date, last_modification_date, last_modified_by, creation_date, created_by) "
 							+ "values (?, ?, ?, ?, ?, ?, ?)");
 			statement.setString(1, file.getName());
 			statement.setString(2, file.getStatus().name());
@@ -57,7 +57,7 @@ public class DatabaseUtil {
 			statement.setString(7, file.getCreatedBy());
 			statement.executeUpdate();
 			getIdStatement = connection.prepareStatement(
-					"select id from file_queue where file_name like ? and last_file_modification_date = ? and created_on = ? and created_by = ?");
+					"select id from file_queue where file_name like ? and file_last_modification_date = ? and created_on = ? and created_by = ?");
 			getIdStatement.setString(1, file.getName());
 			getIdStatement.setTimestamp(2, file.getFileLastModifiedOn());
 			getIdStatement.setTimestamp(3, file.getCreatedOn());
