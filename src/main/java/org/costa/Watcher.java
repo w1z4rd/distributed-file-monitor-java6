@@ -1,5 +1,7 @@
 package org.costa;
 
+import static org.costa.DFMProperties.getLongProperty;
+import static org.costa.DFMProperties.getProperty;
 import static org.costa.FileEntryStatus.DONE;
 import static org.costa.FileEntryStatus.MISSING;
 import static org.costa.FileEntryStatus.PENDING;
@@ -10,8 +12,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,9 +30,14 @@ import org.apache.commons.vfs2.impl.DefaultFileMonitor;
 import org.costa.FileEntry.FileEntryBuilder;
 
 public class Watcher {
+	private final static DatabaseUtil DB_UTIL = DatabaseUtil.getInstance();
+	private final static String UPLOAD_FOLDER = getProperty("uploadFolder");
+	private final static String ARCHIVE_FOLDER = getProperty("archvieFolder");
+	private final static long WATCHER_SLEEP = getLongProperty("watcherSleepInMillis", 5000);
+	private final static long WORKER_SLEEP = getLongProperty("workerSleepInMillis", 10000);
+	private final static String INSTANCE_NAME = getProperty("instanceName");
+
 	private static FileSystemManager fsManager;
-	private static String hostname;
-	private static final DatabaseUtil DB_UTIL = DatabaseUtil.getInstance();
 
 	private Watcher() {
 
@@ -46,13 +51,8 @@ public class Watcher {
 		PrintStream printStream = new PrintStream(log, true, "UTF-8");
 		System.setOut(printStream);
 		System.setErr(printStream);
-		try {
-			hostname = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException uhe) {
-			uhe.printStackTrace();
-		}
 		fsManager = VFS.getManager();
-		FileObject watchedFolder = fsManager.resolveFile("file:///media/upload_test");
+		FileObject watchedFolder = fsManager.resolveFile("file://" + UPLOAD_FOLDER);
 		FileObject[] existingFiles = watchedFolder.getChildren();
 		List<FileObject> existingFilesList = Arrays.asList(existingFiles);
 		Collections.shuffle(existingFilesList);
@@ -77,25 +77,25 @@ public class Watcher {
 			}
 		});
 		fm.setRecursive(false);
-		fm.setDelay(5000);
+		fm.setDelay(WATCHER_SLEEP);
 		fm.addFile(watchedFolder);
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
 		Thread worker1 = new Thread(new FileProcessor());
-		worker1.setName(hostname + "-1");
+		worker1.setName(INSTANCE_NAME + "-worker-1");
 		worker1.setDaemon(true);
 		Thread worker2 = new Thread(new FileProcessor());
-		worker2.setName(hostname + "-2");
+		worker2.setName(INSTANCE_NAME + "-worker-2");
 		worker2.setDaemon(true);
 		Thread worker3 = new Thread(new FileProcessor());
-		worker3.setName(hostname + "-3");
+		worker3.setName(INSTANCE_NAME + "-worker-3");
 		worker3.setDaemon(true);
 		worker1.start();
-		System.out.println("===============Worker: " + worker1.getName() + " Started!===============");
+		System.out.println("===============" + worker1.getName() + " Started!===============");
 		worker2.start();
-		System.out.println("===============Worker: " + worker2.getName() + " Started!===============");
+		System.out.println("===============" + worker2.getName() + " Started!===============");
 		worker3.start();
-		System.out.println("===============Worker: " + worker3.getName() + " Started!===============");
+		System.out.println("===============" + worker3.getName() + " Started!===============");
 		while (true) {
 
 		}
@@ -164,9 +164,9 @@ public class Watcher {
 		fileEntry.withId(-1L)
 			 .withName(file.getName().getBaseName())
 			 .withStatus(PENDING)
-			 .withCreatedBy(hostname)
+			 .withCreatedBy(INSTANCE_NAME)
 			 .withCreatedOn(now)
-			 .withLastModifiedBy(hostname)
+			 .withLastModifiedBy(INSTANCE_NAME)
 			 .withLastModifiedOn(now);
 		try {
 			long checksum = FileUtils.checksumCRC32(new File(file.getName().getPath()));
@@ -239,7 +239,7 @@ public class Watcher {
 					process(file);
 				}
 				try {
-					Thread.sleep(10000);
+					Thread.sleep(WORKER_SLEEP);
 				} catch (InterruptedException ie) {
 					ie.printStackTrace();
 				}
@@ -269,8 +269,8 @@ public class Watcher {
 			System.out.println(Thread.currentThread().getName()
 					+ " | FileProcessor - process - updated file status to PROCESSING");
 			try {
-				File archivedFile = new File("/media/archive/" + inputFile.getName());
-				File uploadedFile = new File("/media/upload_test/" + inputFile.getName());
+				File archivedFile = new File(ARCHIVE_FOLDER + "/" + inputFile.getName());
+				File uploadedFile = new File(UPLOAD_FOLDER + "/" + inputFile.getName());
 				FileUtils.moveFile(uploadedFile, archivedFile);
 				final FileEntry doneFile = new FileEntryBuilder()
 						.withId(inputFile.getId())

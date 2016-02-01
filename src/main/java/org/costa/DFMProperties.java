@@ -34,4 +34,10 @@ public class DFMProperties {
 	public static String getProperty(String name) {
 		return properties.getProperty(name);
 	}
+	
+	public static long getLongProperty(String name, long defaultValue) {
+		String propertiy = properties.getProperty(name, String.valueOf(defaultValue));
+		return Long.parseLong(propertiy);
+	}
+
 }

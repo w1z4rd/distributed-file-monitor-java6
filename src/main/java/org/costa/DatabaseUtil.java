@@ -1,5 +1,7 @@
 package org.costa;
 
+import static org.costa.DFMProperties.getProperty;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -13,6 +15,12 @@ import java.util.Locale;
 import org.costa.FileEntry.FileEntryBuilder;
 
 public class DatabaseUtil {
+	
+	private final static String DATABASE_SERVER_ADDRESS = getProperty("databaseServerAddress");
+	private final static String DATABASE_SERVER_PORT = getProperty("databaseServerPort");
+	private final static String DATABASE_NAME = getProperty("databaseName");
+	private final static String DATABASE_USERNAME = getProperty("databaseUserName");
+	private final static String DATABASE_PASSWORD = getProperty("databasePassword");
 
 	private static DatabaseUtil instance = new DatabaseUtil();
 	private Connection connection = null;
@@ -20,8 +28,9 @@ public class DatabaseUtil {
 	private DatabaseUtil() {
 		try {
 			Class.forName("org.postgresql.Driver");
-			connection = DriverManager.getConnection("jdbc:postgresql://192.168.6.129:5432/upload_test", "postgres",
-					"postgres");
+			connection = DriverManager.getConnection("jdbc:postgresql://" + DATABASE_SERVER_ADDRESS + 
+					":" + DATABASE_SERVER_PORT + "/" + DATABASE_NAME, DATABASE_USERNAME,
+					DATABASE_PASSWORD);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} catch (SQLException sqle) {
