@@ -107,20 +107,20 @@ public class DatabaseUtil {
 		return result;
 	}
 
-	public boolean updateStatus(FileEntry file, FileEntryStatus status) {
-		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - updateStatusToProcessing - " + file);
+	public boolean updateStatus(FileEntry oldFile, FileEntry newFile) {
+		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - updateStatusToProcessing - " + oldFile);
 		PreparedStatement statement = null;
 		try {
 			statement = connection.prepareStatement(
 					"update file_queue set status = ?, last_modification_date  = ?, last_modified_by = ? "
 							+ "where id = ? and last_modification_date = ? and last_modified_by = ? and status = ?");
-			statement.setString(1, status.name());
-			statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-			statement.setString(3, Thread.currentThread().getName());
-			statement.setLong(4, file.getId());
-			statement.setTimestamp(5, file.getLastModifiedOn());
-			statement.setString(6, file.getLastModifiedBy());
-			statement.setString(7, file.getStatus().name());
+			statement.setString(1, newFile.getStatus().name());
+			statement.setTimestamp(2, newFile.getLastModifiedOn());
+			statement.setString(3, newFile.getLastModifiedBy());
+			statement.setLong(4, oldFile.getId());
+			statement.setTimestamp(5, oldFile.getLastModifiedOn());
+			statement.setString(6, oldFile.getLastModifiedBy());
+			statement.setString(7, oldFile.getStatus().name());
 			return statement.executeUpdate() == 1;
 		} catch (SQLException sqle) {
 			sqle.printStackTrace();
