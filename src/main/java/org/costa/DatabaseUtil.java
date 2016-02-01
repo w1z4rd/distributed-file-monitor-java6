@@ -9,6 +9,8 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.costa.FileEntry.FileEntryBuilder;
+
 public class DatabaseUtil {
 
 	private static DatabaseUtil instance = new DatabaseUtil();
@@ -17,7 +19,7 @@ public class DatabaseUtil {
 	private DatabaseUtil() {
 		try {
 			Class.forName("org.postgresql.Driver");
-			connection = DriverManager.getConnection("jdbc:postgresql://192.168.6.28:5432/upload_test", "postgres",
+			connection = DriverManager.getConnection("jdbc:postgresql://192.168.1.228:5432/upload_test", "postgres",
 					"postgres");
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
@@ -38,25 +40,27 @@ public class DatabaseUtil {
 		return instance;
 	}
 
-	public void create(FileEntry file) {
+	public FileEntry create(FileEntry file) {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - create - " + file);
 		PreparedStatement statement = null;
 		PreparedStatement getIdStatement = null;
 		ResultSet resultSet = null;
+		FileEntry result = null;
 		try {
 			statement = connection.prepareStatement(
-					"insert into file_queue (file_name, status, file_last_modification_date, last_modification_date, last_modified_by, creation_date, created_by) "
-							+ "values (?, ?, ?, ?, ?, ?, ?)");
+					"insert into file_queue (file_name, status, file_last_modification_date, file_checksum, last_modification_date, last_modified_by, creation_date, created_by) "
+							+ "values (?, ?, ?, ?, ?, ?, ?, ?)");
 			statement.setString(1, file.getName());
 			statement.setString(2, file.getStatus().name());
 			statement.setTimestamp(3, file.getFileLastModifiedOn());
-			statement.setTimestamp(4, file.getLastModifiedOn());
-			statement.setString(5, file.getLastModifiedBy());
-			statement.setTimestamp(6, file.getCreatedOn());
-			statement.setString(7, file.getCreatedBy());
+			statement.setLong(4, file.getChecksum());
+			statement.setTimestamp(5, file.getLastModifiedOn());
+			statement.setString(6, file.getLastModifiedBy());
+			statement.setTimestamp(7, file.getCreatedOn());
+			statement.setString(8, file.getCreatedBy());
 			statement.executeUpdate();
 			getIdStatement = connection.prepareStatement(
-					"select id from file_queue where file_name like ? and file_last_modification_date = ? and created_on = ? and created_by = ?");
+					"select * from file_queue where file_name like ? and file_last_modification_date = ? and created_on = ? and created_by = ?");
 			getIdStatement.setString(1, file.getName());
 			getIdStatement.setTimestamp(2, file.getFileLastModifiedOn());
 			getIdStatement.setTimestamp(3, file.getCreatedOn());
@@ -64,7 +68,13 @@ public class DatabaseUtil {
 			getIdStatement.execute();
 			resultSet = getIdStatement.getResultSet();
 			if (resultSet.next()) {
-				file.setId(resultSet.getInt(1));
+				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2), 
+						FileEntryStatus.getByName(resultSet.getString(3)),
+						resultSet.getTimestamp(4), resultSet.getLong(5))
+						.withLastModifiedOn(resultSet.getTimestamp(6))
+						.withLastModifiedBy(resultSet.getString(7))
+						.withCreatedOn(resultSet.getTimestamp(8))
+						.withCreatedBy(resultSet.getString(9)).build();
 			}
 		} catch (SQLException e) {
 			System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - create - failed to create" + file
@@ -92,26 +102,26 @@ public class DatabaseUtil {
 				}
 			}
 		}
+		return result;
 	}
 
-	public FileEntry getById(int id) {
+	public FileEntry getById(long id) {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - getById - " + id);
 		PreparedStatement statement = null;
-		FileEntry result = new FileEntry();
+		FileEntry result = null;
 		ResultSet resultSet = null;
 		try {
 			statement = connection.prepareStatement("select * from file_queue where id = ?");
-			statement.setInt(1, id);
+			statement.setLong(1, id);
 			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
-				result.setId(resultSet.getInt(1));
-				result.setName(resultSet.getString(2));
-				result.setStatus(FileEntryStatus.getByName(resultSet.getString(3)));
-				result.setFileLastModifiedOn(resultSet.getTimestamp(4));
-				result.setLastModifiedOn(resultSet.getTimestamp(5));
-				result.setLastModifiedBy(resultSet.getString(6));
-				result.setCreatedOn(resultSet.getTimestamp(7));
-				result.setCreatedBy(resultSet.getString(8));
+				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2), 
+						FileEntryStatus.getByName(resultSet.getString(3)),
+						resultSet.getTimestamp(4), resultSet.getLong(5))
+						.withLastModifiedOn(resultSet.getTimestamp(6))
+						.withLastModifiedBy(resultSet.getString(7))
+						.withCreatedOn(resultSet.getTimestamp(8))
+						.withCreatedBy(resultSet.getString(9)).build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -142,9 +152,9 @@ public class DatabaseUtil {
 			statement = connection.prepareStatement(
 					"update file_queue set status = ?, last_modification_date = ?, last_modified_by = ? where id = ?");
 			statement.setString(1, file.getStatus().name());
-			statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+			statement.setTimestamp(2, file.getLastModifiedOn());
 			statement.setString(3, file.getLastModifiedBy());
-			statement.setInt(4, file.getId());
+			statement.setLong(4, file.getId());
 			result = statement.executeUpdate() == 1;
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -172,7 +182,7 @@ public class DatabaseUtil {
 			statement.setString(1, FileEntryStatus.PROCESSING.name());
 			statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
 			statement.setString(3, Thread.currentThread().getName());
-			statement.setInt(4, file.getId());
+			statement.setLong(4, file.getId());
 			statement.setTimestamp(5, file.getLastModifiedOn());
 			statement.setString(6, file.getLastModifiedBy());
 			statement.setString(7, file.getStatus().name());
@@ -199,19 +209,19 @@ public class DatabaseUtil {
 		Timestamp timestamp = new Timestamp(System.currentTimeMillis() - 1000 * 60 * 30);
 		try {
 			statement = connection.prepareStatement(
-					"select * from file_queue where status like 'PENDING' or (status like 'PROCESSING' and last_modification_date < ?)");
-			statement.setTimestamp(1, timestamp);
+					"select * from file_queue where status like ? or (status like ? and last_modification_date < ?)");
+			statement.setString(1, FileEntryStatus.PENDING.name());
+			statement.setString(2, FileEntryStatus.PROCESSING.name());
+			statement.setTimestamp(3, timestamp);
 			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
-				FileEntry file = new FileEntry();
-				file.setId(resultSet.getInt(1));
-				file.setName(resultSet.getString(2));
-				file.setStatus(FileEntryStatus.getByName(resultSet.getString(3)));
-				file.setFileLastModifiedOn(resultSet.getTimestamp(4));
-				file.setLastModifiedOn(resultSet.getTimestamp(5));
-				file.setLastModifiedBy(resultSet.getString(6));
-				file.setCreatedOn(resultSet.getTimestamp(7));
-				file.setCreatedBy(resultSet.getString(8));
+				FileEntry file = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2), 
+						FileEntryStatus.getByName(resultSet.getString(3)),
+						resultSet.getTimestamp(4), resultSet.getLong(5))
+						.withLastModifiedOn(resultSet.getTimestamp(6))
+						.withLastModifiedBy(resultSet.getString(7))
+						.withCreatedOn(resultSet.getTimestamp(8))
+						.withCreatedBy(resultSet.getString(9)).build();
 				result.add(file);
 			}
 		} catch (SQLException e) {
@@ -245,15 +255,52 @@ public class DatabaseUtil {
 			statement.setString(1, name);
 			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
-				result = new FileEntry();
-				result.setId(resultSet.getInt(1));
-				result.setName(resultSet.getString(2));
-				result.setStatus(FileEntryStatus.getByName(resultSet.getString(3)));
-				result.setFileLastModifiedOn(resultSet.getTimestamp(4));
-				result.setLastModifiedOn(resultSet.getTimestamp(5));
-				result.setLastModifiedBy(resultSet.getString(6));
-				result.setCreatedOn(resultSet.getTimestamp(7));
-				result.setCreatedBy(resultSet.getString(8));
+				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2), 
+						FileEntryStatus.getByName(resultSet.getString(3)),
+						resultSet.getTimestamp(4), resultSet.getLong(5))
+						.withLastModifiedOn(resultSet.getTimestamp(6))
+						.withLastModifiedBy(resultSet.getString(7))
+						.withCreatedOn(resultSet.getTimestamp(8))
+						.withCreatedBy(resultSet.getString(9)).build();
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			if (resultSet != null) {
+				try {
+					resultSet.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+			if (statement != null) {
+				try {
+					statement.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return result;
+	}
+	
+	public FileEntry findFile(FileEntry file) {
+		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - findFile - " + file);
+		PreparedStatement statement = null;
+		FileEntry result = null;
+		ResultSet resultSet = null;
+		try {
+			statement = connection.prepareStatement("select * from file_queue where file_checksum = ? and file_last_modification_date = ? and lower(file_name) = ?");
+			statement.setLong(1, file.getChecksum());
+			resultSet = statement.executeQuery();
+			if (resultSet.next()) {
+				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2), 
+						FileEntryStatus.getByName(resultSet.getString(3)),
+						resultSet.getTimestamp(4), resultSet.getLong(5))
+						.withLastModifiedOn(resultSet.getTimestamp(6))
+						.withLastModifiedBy(resultSet.getString(7))
+						.withCreatedOn(resultSet.getTimestamp(8))
+						.withCreatedBy(resultSet.getString(9)).build();
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

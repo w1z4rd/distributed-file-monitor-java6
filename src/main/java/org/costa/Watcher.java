@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 
@@ -23,9 +24,11 @@ import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.VFS;
 import org.apache.commons.vfs2.impl.DefaultFileMonitor;
+import org.costa.FileEntry.FileEntryBuilder;
 
 public class Watcher {
 	private static FileSystemManager fsManager;
+	private static String hostname;
 	private static final DatabaseUtil DB_UTIL = DatabaseUtil.getInstance();
 
 	private Watcher() {
@@ -35,10 +38,16 @@ public class Watcher {
 	public static void main(String[] args) throws IOException {
 		System.out.println("===============Application Started!===============");
 		System.out.println("Redirecting System.out and System.err to target/watcher.log");
+
 		FileOutputStream log = new FileOutputStream("target/watcher.log");
 		PrintStream printStream = new PrintStream(log);
 		System.setOut(printStream);
 		System.setErr(printStream);
+		try {
+			hostname = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException uhe) {
+			uhe.printStackTrace();
+		}
 		fsManager = VFS.getManager();
 		FileObject watchedFolder = fsManager.resolveFile("file:///media/upload_test");
 		FileObject[] existingFiles = watchedFolder.getChildren();
@@ -70,13 +79,13 @@ public class Watcher {
 		fm.start();
 		System.out.println("===============Monitor Started!===============");
 		Thread worker1 = new Thread(new FileProcessor());
-		worker1.setName("bunti1-1");
+		worker1.setName(hostname + "-1");
 		worker1.setDaemon(true);
 		Thread worker2 = new Thread(new FileProcessor());
-		worker2.setName("bunti1-2");
+		worker2.setName(hostname + "-2");
 		worker2.setDaemon(true);
 		Thread worker3 = new Thread(new FileProcessor());
-		worker3.setName("bunti1-3");
+		worker3.setName(hostname + "-3");
 		worker3.setDaemon(true);
 		worker1.start();
 		System.out.println("===============Worker1 Started!===============");
@@ -114,12 +123,16 @@ public class Watcher {
 				return;
 			}
 			System.out.println(Thread.currentThread().getName() + " | created - " + file.getName().getBaseName());
-			FileEntry fileEntry = new FileEntry(file.getName().getBaseName(), file.getContent().getLastModifiedTime(),
-					InetAddress.getLocalHost().getHostName(), InetAddress.getLocalHost().getHostName());
+			long checksum = FileUtils.checksumCRC32(new File(file.getName().getPath()));
+			Timestamp fileLastModifiedOn = new Timestamp(file.getContent().getLastModifiedTime());
+			Timestamp now = new Timestamp(System.currentTimeMillis());
+			FileEntry fileEntry = new FileEntryBuilder(-1L, file.getName().getBaseName(), FileEntryStatus.PENDING,
+					fileLastModifiedOn, checksum).withCreatedBy(hostname).withCreatedOn(now)
+							.withLastModifiedBy(hostname).withLastModifiedOn(now).build();
 			DB_UTIL.create(fileEntry);
 		} catch (FileSystemException e) {
 			e.printStackTrace();
-		} catch (UnknownHostException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		} finally {
 			try {
@@ -149,9 +162,13 @@ public class Watcher {
 				Collections.shuffle(files);
 				for (FileEntry file : files) {
 					if (process(file)) {
-						file.setStatus(DONE);
-						file.setLastModifiedBy(Thread.currentThread().getName());
-						DB_UTIL.update(file);
+						Timestamp now = new Timestamp(System.currentTimeMillis());
+						FileEntry updatedFile = new FileEntryBuilder(file.getId(), file.getName(), DONE,
+								file.getFileLastModifiedOn(), file.getChecksum()).withCreatedBy(file.getCreatedBy())
+										.withCreatedOn(file.getCreatedOn())
+										.withLastModifiedBy(Thread.currentThread().getName()).withLastModifiedOn(now)
+										.build();
+						DB_UTIL.update(updatedFile);
 					}
 				}
 				try {
@@ -185,9 +202,12 @@ public class Watcher {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - processing file not found marking it as MISSING!");
 				fnfe.printStackTrace();
-				file.setStatus(MISSING);
-				file.setLastModifiedBy(Thread.currentThread().getName());
-				DB_UTIL.update(file);
+				Timestamp now = new Timestamp(System.currentTimeMillis());
+				FileEntry updatedFile = new FileEntryBuilder(file.getId(), file.getName(), MISSING,
+						file.getFileLastModifiedOn(), file.getChecksum()).withCreatedBy(file.getCreatedBy())
+								.withCreatedOn(file.getCreatedOn()).withLastModifiedBy(Thread.currentThread().getName())
+								.withLastModifiedOn(now).build();
+				DB_UTIL.update(updatedFile);
 				return false;
 			} catch (FileExistsException fee) {
 				System.out.println(Thread.currentThread().getName()

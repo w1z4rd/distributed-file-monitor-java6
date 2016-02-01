@@ -1,104 +1,72 @@
 package org.costa;
 
-import static org.costa.FileEntryStatus.PENDING;
-
 import java.sql.Timestamp;
 
 public class FileEntry {
-	private int id;
+	private long id;
 	private String name;
 	private FileEntryStatus status;
 	private String createdBy;
 	private String lastModifiedBy;
+	private long checksum;
 	private Timestamp createdOn;
 	private Timestamp lastModifiedOn;
 	private Timestamp fileLastModifiedOn;
 
-	public FileEntry() {
-
+	private FileEntry(FileEntryBuilder builder) {
+		this.id = builder.id;
+		this.name = builder.name;
+		this.status = builder.status;
+		this.lastModifiedBy = builder.lastModifiedBy;
+		this.checksum = builder.checksum;
+		this.createdBy = builder.createdBy;
+		this.lastModifiedOn = builder.lastModifiedOn;
+		this.createdOn = builder.createdOn;
+		this.fileLastModifiedOn = builder.fileLastModifiedOn;
 	}
 
-	public FileEntry(String fileName, long fileLastModified, String createdBy, String modifiedBy) {
-		long now = System.currentTimeMillis();
-		this.id = -1;
-		this.name = fileName;
-		this.status = PENDING;
-		this.lastModifiedBy = modifiedBy;
-		this.createdBy = createdBy;
-		this.lastModifiedOn = new Timestamp(now);
-		this.createdOn = new Timestamp(now);
-		this.fileLastModifiedOn = new Timestamp(fileLastModified);
-	}
-
-	public int getId() {
+	public long getId() {
 		return id;
-	}
-
-	public void setId(int id) {
-		this.id = id;
 	}
 
 	public String getName() {
 		return name;
 	}
 
-	public void setName(String name) {
-		this.name = name;
-	}
-
 	public FileEntryStatus getStatus() {
 		return status;
-	}
-
-	public void setStatus(FileEntryStatus status) {
-		this.status = status;
 	}
 
 	public String getCreatedBy() {
 		return createdBy;
 	}
 
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
-
 	public String getLastModifiedBy() {
 		return lastModifiedBy;
 	}
 
-	public void setLastModifiedBy(String lastModifiedBy) {
-		this.lastModifiedBy = lastModifiedBy;
+	public long getChecksum() {
+		return checksum;
 	}
 
 	public Timestamp getCreatedOn() {
 		return createdOn;
 	}
 
-	public void setCreatedOn(Timestamp createdOn) {
-		this.createdOn = createdOn;
-	}
-
 	public Timestamp getLastModifiedOn() {
 		return lastModifiedOn;
-	}
-
-	public void setLastModifiedOn(Timestamp lastModifiedOn) {
-		this.lastModifiedOn = lastModifiedOn;
 	}
 
 	public Timestamp getFileLastModifiedOn() {
 		return fileLastModifiedOn;
 	}
 
-	public void setFileLastModifiedOn(Timestamp fileLastModifiedOn) {
-		this.fileLastModifiedOn = fileLastModifiedOn;
-	}
-
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + id;
+		result = prime * result + Long.valueOf(id).hashCode();
+		result = prime * result + Long.valueOf(checksum).hashCode();
 		result = prime * result + ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((fileLastModifiedOn == null) ? 0 : fileLastModifiedOn.hashCode());
@@ -124,6 +92,8 @@ public class FileEntry {
 			if (other.lastModifiedOn != null)
 				return false;
 		} else if (!lastModifiedOn.equals(other.lastModifiedOn))
+			return false;
+		if (checksum != other.checksum)
 			return false;
 		if (lastModifiedBy == null) {
 			if (other.lastModifiedBy != null)
@@ -158,8 +128,53 @@ public class FileEntry {
 	@Override
 	public String toString() {
 		return "FileEntry [id=" + id + ", name=" + name + ", status=" + status + ", createdBy=" + createdBy
-				+ ", lastModifiedBy=" + lastModifiedBy + ", createdOn=" + createdOn + ", lastModifiedOn="
-				+ lastModifiedOn + ", fileLastModifiedOn=" + fileLastModifiedOn + "]";
+				+ ", lastModifiedBy=" + lastModifiedBy + ", checksum=" + checksum + ", createdOn=" + createdOn
+				+ ", lastModifiedOn=" + lastModifiedOn + ", fileLastModifiedOn=" + fileLastModifiedOn + "]";
 	}
 
+	public static class FileEntryBuilder {
+		private long id;
+		private String name;
+		private FileEntryStatus status;
+		private String createdBy;
+		private String lastModifiedBy;
+		private long checksum;
+		private Timestamp createdOn;
+		private Timestamp lastModifiedOn;
+		private Timestamp fileLastModifiedOn;
+
+		public FileEntryBuilder(long id, String name, FileEntryStatus status, Timestamp fileLastModifiedOn,
+				long checksum) {
+			this.id = id;
+			this.name = name;
+			this.status = status;
+			this.fileLastModifiedOn = fileLastModifiedOn;
+			this.checksum = checksum;
+		}
+
+		public FileEntryBuilder withCreatedBy(String createdBy) {
+			this.createdBy = createdBy;
+			return this;
+		}
+
+		public FileEntryBuilder withCreatedOn(Timestamp createdOn) {
+			this.createdOn = createdOn;
+			return this;
+		}
+
+		public FileEntryBuilder withLastModifiedOn(Timestamp lastModifidedOn) {
+			this.lastModifiedOn = lastModifidedOn;
+			return this;
+		}
+
+		public FileEntryBuilder withLastModifiedBy(String lastModifiedBy) {
+			this.lastModifiedBy = lastModifiedBy;
+			return this;
+		}
+
+		public FileEntry build() {
+			return new FileEntry(this);
+		}
+
+	}
 }
