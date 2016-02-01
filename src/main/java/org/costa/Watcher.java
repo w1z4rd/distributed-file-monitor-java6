@@ -119,7 +119,8 @@ public class Watcher {
 
 	private static void onDelete(FileObject file) {
 		try {
-			System.out.println(Thread.currentThread().getName() + " | deleted - " + file.getName().getBaseName());
+			System.out.println(
+					Thread.currentThread().getName() + " | Watcher -  onDeleted - " + file.getName().getBaseName());
 			file.close();
 		} catch (FileSystemException e) {
 			e.printStackTrace();
@@ -127,28 +128,20 @@ public class Watcher {
 	}
 
 	private static void onCreated(FileObject file) {
-		System.out.println(Thread.currentThread().getName() + " | onCreated - " + file.getName().getBaseName());
+		System.out.println(
+				Thread.currentThread().getName() + " | Watcher -  onCreated - " + file.getName().getBaseName());
 		if (!isFile(file)) {
-			System.out.println(Thread.currentThread().getName() + " | onCreated " + file.getName().getBaseName()
-					+ " is a folder and is skiped");
+			System.out.println(Thread.currentThread().getName() + " | Watcher -  onCreated "
+					+ file.getName().getBaseName() + " is a folder and is skiped");
 			return;
 		}
 		FileEntry fileEntry = createNewFileEntry(file);
-		FileEntry persistedFileEntry = DB_UTIL.create(fileEntry);
-		if (persistedFileEntry == null) {
-			persistedFileEntry = DB_UTIL.findFile(fileEntry);
-		}
-		switch (persistedFileEntry.getStatus()) {
-		case MISSING:
+		FileEntry persistedFileEntry = DB_UTIL.findFile(fileEntry);
+		if (persistedFileEntry != null && persistedFileEntry.getStatus() == MISSING) {
 			updateStatusToPending(persistedFileEntry);
-			break;
-		case DONE:
-			moveFileToErrorFolder(persistedFileEntry);
-			break;
-		case PENDING:
-		case PROCESSING:
-		default:
+			return;
 		}
+		DB_UTIL.create(fileEntry);
 	}
 
 	private static FileEntry createNewFileEntry(FileObject file) {
@@ -185,48 +178,25 @@ public class Watcher {
 	}
 
 	private static void updateStatusToPending(FileEntry file) {
-		System.out.println(
-				Thread.currentThread().getName() + " | FileProcessor - updateStatusToPending - processing " + file);
+		System.out
+				.println(Thread.currentThread().getName() + " | Watcher - updateStatusToPending - processing " + file);
 		FileEntry reloadedFile = DB_UTIL.getById(file.getId());
 
 		if (!reloadedFile.equals(file)) {
 			System.out.println(Thread.currentThread().getName()
-					+ " | FileProcessor - updateStatusToPending - reloaded file is not equal to processing file");
+					+ " | Watcher - updateStatusToPending - reloaded file is not equal to processing file");
 			return;
 		}
 
 		if (!DB_UTIL.updateStatus(file, PENDING)) {
 			System.out.println(Thread.currentThread().getName()
-					+ " | FileProcessor - updateStatusToPending - failed to update status to PENDING");
+					+ " | Watcher - updateStatusToPending - failed to update status to PENDING");
 			return;
 		}
 
-		System.out.println(
-				Thread.currentThread().getName() + " | FileProcessor - process - updated file status to PENDING");
+		System.out.println(Thread.currentThread().getName()
+				+ " | Watcher - updateStatusToPending - updated file status to PENDING");
 
-	}
-
-	private static void moveFileToErrorFolder(FileEntry file) {
-		System.out
-				.println(Thread.currentThread().getName() + " | Watcher - moveFileToErrorFolder - processing " + file);
-
-		try {
-			File errorFile = new File("/media/error/" + file.getName());
-			File processingFile = new File("/media/upload_test/" + file.getName());
-			FileUtils.moveFile(processingFile, errorFile);
-			System.out.println(Thread.currentThread().getName() + " | FileProcessor - processed - " + file);
-		} catch (FileNotFoundException fnfe) {
-			System.out.println(Thread.currentThread().getName()
-					+ " | Watcher - moveFileToErrorFolder - file not found marking it as MISSING!");
-			fnfe.printStackTrace();
-		} catch (FileExistsException fee) {
-			System.out.println(Thread.currentThread().getName()
-					+ " | FileProcessor - process - file already exists in error folder!");
-		} catch (IOException ioe) {
-			System.out.println(Thread.currentThread().getName()
-					+ " | FileProcessor - process - failed to move the file to archive");
-			ioe.printStackTrace();
-		}
 	}
 
 	private static class FileProcessor implements Runnable {
