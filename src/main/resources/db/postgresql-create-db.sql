@@ -26,7 +26,7 @@ CREATE TABLE file_queue
   creation_date timestamp without time zone,
   created_by character varying(250),
   CONSTRAINT file_queue_pkey PRIMARY KEY (id),
-  CONSTRAINT file_queue_unique UNIQUE (file_name, file_last_modification_date, file_checksum)
+  CONSTRAINT file_queue_unique UNIQUE (file_checksum, file_name, file_last_modification_date)
 )
 WITH (
   OIDS=FALSE

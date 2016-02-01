@@ -4,15 +4,18 @@ import java.sql.Timestamp;
 
 public class FileEntry {
 	private long id;
+	private long checksum;
+	
 	private String name;
-	private FileEntryStatus status;
 	private String createdBy;
 	private String lastModifiedBy;
-	private long checksum;
+
 	private Timestamp createdOn;
 	private Timestamp lastModifiedOn;
 	private Timestamp fileLastModifiedOn;
 
+	private FileEntryStatus status;
+	
 	private FileEntry(FileEntryBuilder builder) {
 		this.id = builder.id;
 		this.name = builder.name;
