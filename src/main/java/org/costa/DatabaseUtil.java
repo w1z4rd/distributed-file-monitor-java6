@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import org.costa.FileEntry.FileEntryBuilder;
 
@@ -180,7 +181,7 @@ public class DatabaseUtil {
 			statement = connection.prepareStatement(
 					"select * from file_queue where file_checksum = ? and lower(file_name) = ? and file_last_modification_date = ?");
 			statement.setLong(1, file.getChecksum());
-			statement.setString(2, file.getName().toLowerCase());
+			statement.setString(2, file.getName().toLowerCase(Locale.getDefault()));
 			statement.setTimestamp(3, file.getFileLastModifiedOn());
 			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
