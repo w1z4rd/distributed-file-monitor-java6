@@ -80,11 +80,7 @@ public class DatabaseUtil {
 			statement.setLong(1, id);
 			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
-				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2),
-						FileEntryStatus.getByName(resultSet.getString(3)), resultSet.getTimestamp(4),
-						resultSet.getLong(5)).withLastModifiedOn(resultSet.getTimestamp(6))
-								.withLastModifiedBy(resultSet.getString(7)).withCreatedOn(resultSet.getTimestamp(8))
-								.withCreatedBy(resultSet.getString(9)).build();
+				result = createFileEntity(resultSet);
 			}
 		} catch (SQLException sqle) {
 			sqle.printStackTrace();
@@ -151,11 +147,7 @@ public class DatabaseUtil {
 			statement.setTimestamp(4, timestamp);
 			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
-				FileEntry file = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2),
-						FileEntryStatus.getByName(resultSet.getString(3)), resultSet.getTimestamp(4),
-						resultSet.getLong(5)).withLastModifiedOn(resultSet.getTimestamp(6))
-								.withLastModifiedBy(resultSet.getString(7)).withCreatedOn(resultSet.getTimestamp(8))
-								.withCreatedBy(resultSet.getString(9)).build();
+				FileEntry file = createFileEntity(resultSet);
 				result.add(file);
 			}
 		} catch (SQLException sqle) {
@@ -192,11 +184,7 @@ public class DatabaseUtil {
 			statement.setTimestamp(3, file.getFileLastModifiedOn());
 			resultSet = statement.executeQuery();
 			if (resultSet.next()) {
-				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2),
-						FileEntryStatus.getByName(resultSet.getString(3)), resultSet.getTimestamp(4),
-						resultSet.getLong(5)).withLastModifiedOn(resultSet.getTimestamp(6))
-								.withLastModifiedBy(resultSet.getString(7)).withCreatedOn(resultSet.getTimestamp(8))
-								.withCreatedBy(resultSet.getString(9)).build();
+				result = createFileEntity(resultSet);
 			}
 		} catch (SQLException sqle) {
 			sqle.printStackTrace();
@@ -217,5 +205,19 @@ public class DatabaseUtil {
 			}
 		}
 		return result;
+	}
+	
+	private FileEntry createFileEntity(ResultSet resultSet) throws SQLException {
+		return new FileEntryBuilder()
+						.withId(resultSet.getLong(1))
+						.withName(resultSet.getString(2))
+						.withStatus(FileEntryStatus.getByName(resultSet.getString(3)))
+						.withFileLastModifiedOn(resultSet.getTimestamp(4))
+						.withChecksum(resultSet.getLong(5))
+						.withLastModifiedOn(resultSet.getTimestamp(6))
+						.withLastModifiedBy(resultSet.getString(7))
+						.withCreatedOn(resultSet.getTimestamp(8))
+						.withCreatedBy(resultSet.getString(9))
+						.build();
 	}
 }

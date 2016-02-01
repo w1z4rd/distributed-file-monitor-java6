@@ -137,8 +137,18 @@ public class Watcher {
 		}
 		FileEntry fileEntry = createNewFileEntry(file);
 		FileEntry persistedFileEntry = DB_UTIL.findFile(fileEntry);
-		if (persistedFileEntry != null && persistedFileEntry.getStatus() == MISSING) {
-			updateStatusToPending(persistedFileEntry);
+		if (persistedFileEntry != null) {
+			switch (persistedFileEntry.getStatus()) {
+			case MISSING:
+				updateStatusToPending(persistedFileEntry);
+				break;
+			case DONE:
+				System.out.println(Thread.currentThread().getName()
+						+ " | Watcher -  onCreated - identical file already processed " + persistedFileEntry);
+				break;
+			default:
+				break;
+			}
 			return;
 		}
 		DB_UTIL.create(fileEntry);
@@ -150,9 +160,17 @@ public class Watcher {
 			long checksum = FileUtils.checksumCRC32(new File(file.getName().getPath()));
 			Timestamp fileLastModifiedOn = new Timestamp(file.getContent().getLastModifiedTime());
 			Timestamp now = new Timestamp(System.currentTimeMillis());
-			fileEntry = new FileEntryBuilder(-1L, file.getName().getBaseName(), FileEntryStatus.PENDING,
-					fileLastModifiedOn, checksum).withCreatedBy(hostname).withCreatedOn(now)
-							.withLastModifiedBy(hostname).withLastModifiedOn(now).build();
+			fileEntry = new FileEntryBuilder()
+					.withId(-1L)
+					.withName(file.getName().getBaseName())
+					.withStatus(PENDING)
+					.withFileLastModifiedOn(fileLastModifiedOn)
+					.withChecksum(checksum)
+					.withCreatedBy(hostname)
+					.withCreatedOn(now)
+					.withLastModifiedBy(hostname)
+					.withLastModifiedOn(now)
+					.build();
 		} catch (FileSystemException fse) {
 			fse.printStackTrace();
 		} catch (IOException ioe) {
@@ -186,10 +204,15 @@ public class Watcher {
 					+ " | Watcher - updateStatusToPending - reloaded file is not equal to processing file");
 			return;
 		}
-		FileEntry updatedFile = new FileEntryBuilder(file.getId(), file.getName(), PENDING,
-				file.getFileLastModifiedOn(), file.getChecksum())
-						.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
-						.withLastModifiedBy(Thread.currentThread().getName()).build();
+		FileEntry updatedFile = new FileEntryBuilder()
+				.withId(file.getId())
+				.withName(file.getName())
+				.withStatus(PENDING)
+				.withFileLastModifiedOn(file.getFileLastModifiedOn())
+				.withChecksum(file.getChecksum())
+				.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
+				.withLastModifiedBy(Thread.currentThread().getName())
+				.build();
 		if (!DB_UTIL.updateStatus(file, updatedFile)) {
 			System.out.println(Thread.currentThread().getName()
 					+ " | Watcher - updateStatusToPending - failed to update status to PENDING");
@@ -228,11 +251,12 @@ public class Watcher {
 						+ " | FileProcessor - process - reloaded file is not equal to processing file");
 				return;
 			}
-			FileEntry processingFile = new FileEntryBuilder(inputFile.getId(), inputFile.getName(), PROCESSING,
-					inputFile.getFileLastModifiedOn(), inputFile.getChecksum()).withCreatedOn(inputFile.getCreatedOn())
-							.withCreatedBy(inputFile.getCreatedBy())
+			FileEntry processingFile = new FileEntryBuilder()
+							.withId(inputFile.getId())
+							.withStatus(PROCESSING)
 							.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
-							.withLastModifiedBy(Thread.currentThread().getName()).build();
+							.withLastModifiedBy(Thread.currentThread().getName())
+							.build();
 			if (!DB_UTIL.updateStatus(inputFile, processingFile)) {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - failed to update status to processing");
@@ -244,21 +268,23 @@ public class Watcher {
 				File archivedFile = new File("/media/archive/" + inputFile.getName());
 				File uploadedFile = new File("/media/upload_test/" + inputFile.getName());
 				FileUtils.moveFile(uploadedFile, archivedFile);
-				FileEntry doneFile = new FileEntryBuilder(inputFile.getId(), inputFile.getName(), DONE,
-						inputFile.getFileLastModifiedOn(), inputFile.getChecksum())
-								.withCreatedOn(inputFile.getCreatedOn()).withCreatedBy(inputFile.getCreatedBy())
-								.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
-								.withLastModifiedBy(Thread.currentThread().getName()).build();
+				FileEntry doneFile = new FileEntryBuilder()
+						.withId(inputFile.getId())
+						.withStatus(DONE)
+						.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
+						.withLastModifiedBy(Thread.currentThread().getName())
+						.build();
 				DB_UTIL.updateStatus(processingFile, doneFile);
 				System.out.println(Thread.currentThread().getName() + " | FileProcessor - processed - " + inputFile);
 			} catch (FileNotFoundException fnfe) {
 				System.out.println(Thread.currentThread().getName()
 						+ " | FileProcessor - process - processing file not found marking it as MISSING!");
-				FileEntry missingFile = new FileEntryBuilder(inputFile.getId(), inputFile.getName(), MISSING,
-						inputFile.getFileLastModifiedOn(), inputFile.getChecksum())
-								.withCreatedOn(inputFile.getCreatedOn()).withCreatedBy(inputFile.getCreatedBy())
-								.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
-								.withLastModifiedBy(Thread.currentThread().getName()).build();
+				FileEntry missingFile = new FileEntryBuilder()
+						.withId(inputFile.getId())
+						.withStatus(MISSING)
+						.withLastModifiedOn(new Timestamp(System.currentTimeMillis()))
+						.withLastModifiedBy(Thread.currentThread().getName())
+						.build();
 				DB_UTIL.updateStatus(processingFile, missingFile);
 				fnfe.printStackTrace();
 			} catch (FileExistsException fee) {

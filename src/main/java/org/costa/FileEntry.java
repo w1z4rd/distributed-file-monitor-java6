@@ -5,7 +5,7 @@ import java.sql.Timestamp;
 public class FileEntry {
 	private long id;
 	private long checksum;
-	
+
 	private String name;
 	private String createdBy;
 	private String lastModifiedBy;
@@ -15,7 +15,7 @@ public class FileEntry {
 	private Timestamp fileLastModifiedOn;
 
 	private FileEntryStatus status;
-	
+
 	private FileEntry(FileEntryBuilder builder) {
 		this.id = builder.id;
 		this.name = builder.name;
@@ -146,13 +146,33 @@ public class FileEntry {
 		private Timestamp lastModifiedOn;
 		private Timestamp fileLastModifiedOn;
 
-		public FileEntryBuilder(long id, String name, FileEntryStatus status, Timestamp fileLastModifiedOn,
-				long checksum) {
+		public FileEntryBuilder() {
+
+		}
+
+		public FileEntryBuilder withId(long id) {
 			this.id = id;
+			return this;
+		}
+
+		public FileEntryBuilder withName(String name) {
 			this.name = name;
+			return this;
+		}
+
+		public FileEntryBuilder withStatus(FileEntryStatus status) {
 			this.status = status;
+			return this;
+		}
+
+		public FileEntryBuilder withFileLastModifiedOn(Timestamp fileLastModifiedOn) {
 			this.fileLastModifiedOn = fileLastModifiedOn;
+			return this;
+		}
+
+		public FileEntryBuilder withChecksum(long checksum) {
 			this.checksum = checksum;
+			return this;
 		}
 
 		public FileEntryBuilder withCreatedBy(String createdBy) {
