@@ -19,7 +19,7 @@ public class DatabaseUtil {
 	private DatabaseUtil() {
 		try {
 			Class.forName("org.postgresql.Driver");
-			connection = DriverManager.getConnection("jdbc:postgresql://192.168.1.228:5432/upload_test", "postgres",
+			connection = DriverManager.getConnection("jdbc:postgresql://192.168.6.129:5432/upload_test", "postgres",
 					"postgres");
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
@@ -40,12 +40,9 @@ public class DatabaseUtil {
 		return instance;
 	}
 
-	public FileEntry create(FileEntry file) {
+	public void create(FileEntry file) {
 		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - create - " + file);
 		PreparedStatement statement = null;
-		PreparedStatement getIdStatement = null;
-		ResultSet resultSet = null;
-		FileEntry result = null;
 		try {
 			statement = connection.prepareStatement(
 					"insert into file_queue (file_name, status, file_last_modification_date, file_checksum, last_modification_date, last_modified_by, creation_date, created_by) "
@@ -59,31 +56,10 @@ public class DatabaseUtil {
 			statement.setTimestamp(7, file.getCreatedOn());
 			statement.setString(8, file.getCreatedBy());
 			statement.executeUpdate();
-			getIdStatement = connection.prepareStatement(
-					"select * from file_queue where file_checksum = ? and file_name = ? and file_last_modification_date = ?");
-			getIdStatement.setLong(1, file.getChecksum());
-			getIdStatement.setString(2, file.getName());
-			getIdStatement.setTimestamp(3, file.getFileLastModifiedOn());
-			getIdStatement.execute();
-			resultSet = getIdStatement.getResultSet();
-			if (resultSet.next()) {
-				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2),
-						FileEntryStatus.getByName(resultSet.getString(3)), resultSet.getTimestamp(4),
-						resultSet.getLong(5)).withLastModifiedOn(resultSet.getTimestamp(6))
-								.withLastModifiedBy(resultSet.getString(7)).withCreatedOn(resultSet.getTimestamp(8))
-								.withCreatedBy(resultSet.getString(9)).build();
-			}
 		} catch (SQLException e) {
 			System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - create - failed to create" + file
 					+ "\n" + e.getMessage());
 		} finally {
-			if (resultSet != null) {
-				try {
-					resultSet.close();
-				} catch (SQLException sqle) {
-					sqle.printStackTrace();
-				}
-			}
 			if (statement != null) {
 				try {
 					statement.close();
@@ -91,15 +67,7 @@ public class DatabaseUtil {
 					sqle.printStackTrace();
 				}
 			}
-			if (getIdStatement != null) {
-				try {
-					getIdStatement.close();
-				} catch (SQLException sqle) {
-					sqle.printStackTrace();
-				}
-			}
 		}
-		return result;
 	}
 
 	public FileEntry getById(long id) {
@@ -133,34 +101,6 @@ public class DatabaseUtil {
 					statement.close();
 				} catch (SQLException sqle) {
 					sqle.printStackTrace();
-				}
-			}
-		}
-		return result;
-	}
-
-	public boolean update(FileEntry file) {
-		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - update - " + file);
-		PreparedStatement statement = null;
-		boolean result = false;
-		try {
-			statement = connection.prepareStatement(
-					"update file_queue set status = ?, last_modification_date = ?, last_modified_by = ? where id = ?");
-			statement.setString(1, file.getStatus().name());
-			statement.setTimestamp(2, file.getLastModifiedOn());
-			statement.setString(3, file.getLastModifiedBy());
-			statement.setLong(4, file.getId());
-			result = statement.executeUpdate() == 1;
-		} catch (SQLException sqle) {
-			sqle.printStackTrace();
-			return false;
-		} finally {
-			if (statement != null) {
-				try {
-					statement.close();
-				} catch (SQLException sqle) {
-					sqle.printStackTrace();
-					return false;
 				}
 			}
 		}
@@ -204,10 +144,11 @@ public class DatabaseUtil {
 		Timestamp timestamp = new Timestamp(System.currentTimeMillis() - 1000 * 60 * 30);
 		try {
 			statement = connection.prepareStatement(
-					"select * from file_queue where status like ? or (status like ? and last_modification_date < ?)");
-			statement.setString(1, FileEntryStatus.PENDING.name());
-			statement.setString(2, FileEntryStatus.PROCESSING.name());
-			statement.setTimestamp(3, timestamp);
+					"select * from file_queue where status != ? and status != ? and not (status = ? and last_modification_date > ?)");
+			statement.setString(1, FileEntryStatus.DONE.name());
+			statement.setString(2, FileEntryStatus.MISSING.name());
+			statement.setString(3, FileEntryStatus.PROCESSING.name());
+			statement.setTimestamp(4, timestamp);
 			resultSet = statement.executeQuery();
 			while (resultSet.next()) {
 				FileEntry file = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2),
@@ -225,43 +166,6 @@ public class DatabaseUtil {
 					resultSet.close();
 				} catch (SQLException sqle) {
 					sqle.printStackTrace();
-				}
-			}
-			if (statement != null) {
-				try {
-					statement.close();
-				} catch (SQLException sqle) {
-					sqle.printStackTrace();
-				}
-			}
-		}
-		return result;
-	}
-
-	public FileEntry findByName(String name) {
-		System.out.println(Thread.currentThread().getName() + " | DatabaseUtil - findByName - " + name);
-		PreparedStatement statement = null;
-		FileEntry result = null;
-		ResultSet resultSet = null;
-		try {
-			statement = connection.prepareStatement("select * from file_queue where lower(file_name) = ?");
-			statement.setString(1, name.toLowerCase());
-			resultSet = statement.executeQuery();
-			if (resultSet.next()) {
-				result = new FileEntryBuilder(resultSet.getLong(1), resultSet.getString(2),
-						FileEntryStatus.getByName(resultSet.getString(3)), resultSet.getTimestamp(4),
-						resultSet.getLong(5)).withLastModifiedOn(resultSet.getTimestamp(6))
-								.withLastModifiedBy(resultSet.getString(7)).withCreatedOn(resultSet.getTimestamp(8))
-								.withCreatedBy(resultSet.getString(9)).build();
-			}
-		} catch (SQLException sqle) {
-			sqle.printStackTrace();
-		} finally {
-			if (resultSet != null) {
-				try {
-					resultSet.close();
-				} catch (SQLException e) {
-					e.printStackTrace();
 				}
 			}
 			if (statement != null) {

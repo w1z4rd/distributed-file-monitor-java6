@@ -179,7 +179,7 @@ public class Watcher {
 
 	private static void updateStatusToPending(FileEntry file) {
 		System.out
-				.println(Thread.currentThread().getName() + " | Watcher - updateStatusToPending - processing " + file);
+				.println(Thread.currentThread().getName() + " | Watcher - updateStatusToPending - " + file);
 		FileEntry reloadedFile = DB_UTIL.getById(file.getId());
 
 		if (!reloadedFile.equals(file)) {
@@ -195,7 +195,7 @@ public class Watcher {
 		}
 
 		System.out.println(Thread.currentThread().getName()
-				+ " | Watcher - updateStatusToPending - updated file status to PENDING");
+				+ " | Watcher - updateStatusToPending - updated status to PENDING");
 
 	}
 
